@@ -142,8 +142,8 @@ def _canonical_url(url: str) -> str:
     return f"https://www.scribd.com/document/{doc_id}/"
 
 
-def _fetch_document_page(url: str) -> tuple[str, str]:
-    """Return (html, title). Raises a specific ScribdError on failure."""
+def _fetch_document_page(url: str) -> tuple[str, str, list[str]]:
+    """Return (html, title, content_urls). Raises a specific ScribdError on failure."""
     doc_id = _extract_doc_id(url)
     try:
         resp = _session().get(url, timeout=_TIMEOUT, allow_redirects=True)
@@ -152,7 +152,7 @@ def _fetch_document_page(url: str) -> tuple[str, str]:
 
     body = resp.text or ""
 
-    if "<title>Client Challenge</title>" in body or "_fs-ch-" in body and "Client Challenge" in body:
+    if "<title>Client Challenge</title>" in body:
         raise ScribdChallengeError(
             "Scribd served its bot-protection challenge page. "
             "Automated download is blocked from this network right now."
@@ -188,14 +188,13 @@ def _fetch_document_page(url: str) -> tuple[str, str]:
     return body, title, content_urls
 
 
-def _page_manifest(jsonp_url: str) -> tuple[str, str, int, int, tuple | None]:
+def _page_manifest(jsonp_url: str) -> tuple[str, str, int, int]:
     """Fetch one JSONP page manifest.
 
-    Returns (page_image_url, page_html, page_width_px, page_height_px, clip).
+    Returns (page_image_url, page_html, page_width_px, page_height_px).
     The image URL always exists (``<img class="absimg" orig="...">``), but for
-    text-layout documents the image is only a blank background stencil -- the
-    real content is the ``text_layer`` inside ``page_html``. ``clip`` is the
-    CSS ``clip:rect()`` the viewer applies to the image (or None).
+    text-layout documents the image is only a background stencil -- the real
+    content is the ``text_layer`` inside ``page_html``.
     """
     resp = _session().get(jsonp_url, timeout=_TIMEOUT)
     if resp.status_code != 200:
@@ -233,15 +232,7 @@ def _page_manifest(jsonp_url: str) -> tuple[str, str, int, int, tuple | None]:
         if hm:
             height = int(hm.group(1))
 
-    clip = None
-    img_style = img.get("style") or ""
-    cm = re.search(
-        r"clip:\s*rect\(\s*(\d+)px\s+(\d+)px\s+(\d+)px\s+(\d+)px\s*\)", img_style
-    )
-    if cm:
-        top, right, bottom, left = (int(v) for v in cm.groups())
-        clip = (left, top, right, bottom)
-    return src, page_html, width, height, clip
+    return src, page_html, width, height
 
 
 def _flatten_to_rgb(image: Image.Image) -> Image.Image:
@@ -257,6 +248,19 @@ def _flatten_to_rgb(image: Image.Image) -> Image.Image:
     bg = Image.new("RGB", rgba.size, (255, 255, 255))
     bg.paste(rgba, mask=rgba.split()[3])
     return bg
+
+
+def _is_stencil_image(im: Image.Image) -> bool:
+    """True for Scribd's text-page stencil images.
+
+    Text-layout documents ship their page "image" as a small palette PNG with
+    a tRNS transparency chunk -- a background stencil, not the page content
+    (the content lives in the JSONP's ``text_layer``). Scanned documents ship
+    opaque JPEGs.
+    """
+    if (im.format or "").upper() != "PNG":
+        return False
+    return im.mode == "P" and "transparency" in im.info
 
 
 def _is_blank_page(rgb: Image.Image, threshold: float = 0.03) -> bool:
@@ -329,13 +333,13 @@ def _render_text_page(lines: list[str], width: int, height: int, dest_path: str)
     page.save(dest_path, "PNG")
 
 
-def _download_image(image_url: str, dest_path: str) -> str:
+def _download_image(image_url: str, dest_path: str) -> tuple[str, bool]:
     """Download one page image and normalise it for img2pdf.
 
-    Returns the path of the normalised file (may differ in extension from
-    ``dest_path``): opaque JPEGs are kept as JPEG; anything else (PNG with
-    transparency, WebP, ...) is flattened onto white and saved as PNG.
-    img2pdf only accepts JPEG/PNG, and raw alpha-channel images mis-render.
+    Returns ``(out_path, is_stencil)``: ``out_path`` is the normalised file
+    (opaque JPEGs are kept as JPEG; anything else is flattened onto white and
+    saved as PNG -- img2pdf only accepts JPEG/PNG and raw alpha images
+    mis-render), ``is_stencil`` flags Scribd's text-page background stencils.
     """
     last_exc: Exception | None = None
     data: bytes | None = None
@@ -359,48 +363,42 @@ def _download_image(image_url: str, dest_path: str) -> str:
 
     try:
         with Image.open(io.BytesIO(data)) as im:
+            stencil = _is_stencil_image(im)
             fmt = (im.format or "").upper()
             img = _flatten_to_rgb(im) if im.mode != "RGB" else im.copy()
     except Exception as exc:
         raise ScribdError(f"Downloaded file is not a valid image: {image_url}") from exc
 
     base, _ext = os.path.splitext(dest_path)
-    if fmt in ("JPEG", "JPG") and img.mode == "RGB":
+    if fmt in ("JPEG", "JPG"):
         out_path = base + ".jpg"
         img.save(out_path, "JPEG", quality=92)
     else:
         out_path = base + ".png"
         img.save(out_path, "PNG")
-    return out_path
+    return out_path, stencil
 
 
 def _fetch_page(index: int, jsonp_url: str, tmpdir: str) -> str:
     """Download page ``index`` (0-based); return the local image path.
 
-    Text-layout documents ship a blank background stencil as the page image,
-    so when the image is (near-)blank we render the page's text_layer instead.
+    Text-layout documents ship a background stencil as the page image, so for
+    stencil images (or blank images) we render the page's ``text_layer``
+    instead -- that is the actual page content.
     """
-    image_url, page_html, width, height, clip = _page_manifest(jsonp_url)
+    image_url, page_html, width, height = _page_manifest(jsonp_url)
     dest = os.path.join(tmpdir, f"page-{index:04d}")
-    out_path = _download_image(image_url, dest)
-    try:
-        with Image.open(out_path) as im:
-            rgb = im.convert("RGB")
-            if clip is not None:
-                left, top, right, bottom = clip
-                left = max(0, left)
-                top = max(0, top)
-                right = min(rgb.width, right)
-                bottom = min(rgb.height, bottom)
-                if right > left and bottom > top:
-                    rgb = rgb.crop((left, top, right, bottom))
-            blank = _is_blank_page(rgb)
-            if not blank and (rgb.width, rgb.height) != (im.width, im.height):
-                # persist the clipped region: it's what the viewer shows
-                rgb.save(out_path)
-    except Exception:
-        blank = False
-    if blank:
+    out_path, is_stencil = _download_image(image_url, dest)
+
+    use_text = is_stencil
+    if not use_text:
+        try:
+            with Image.open(out_path) as im:
+                if _is_blank_page(im.convert("RGB")):
+                    use_text = True
+        except Exception:
+            pass
+    if use_text:
         lines = _extract_text_lines(page_html)
         if lines:
             text_path = os.path.join(tmpdir, f"page-{index:04d}.text.png")
