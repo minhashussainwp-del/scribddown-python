@@ -1,0 +1,40 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<h1>Categories</h1>
+<p class="admin-sub">{{ cats|length }} categor(ies). Used to organize blog posts.</p>
+
+<div class="form-card" style="max-width:520px">
+  <h3>Add category</h3>
+  <form method="post">
+    <label for="f-name">Name</label>
+    <input type="text" id="f-name" name="name" required maxlength="128">
+    <div class="form-actions">
+      <button type="submit" class="btn">Add</button>
+    </div>
+  </form>
+</div>
+
+<div class="tbl-wrap">
+  <table class="tbl">
+    <thead>
+      <tr><th>Name</th><th>Slug</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for c in cats %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td><code>{{ c.slug }}</code></td>
+        <td>
+          <form class="inline-form" method="post" action="/admin/categories/{{ c.id }}/delete"
+                onsubmit="return confirm('Delete this category?')">
+            <button type="submit" class="link-btn">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" style="text-align:center;color:var(--muted)">No categories yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

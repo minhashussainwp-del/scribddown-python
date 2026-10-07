@@ -1,0 +1,48 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<h1>Menus</h1>
+<p class="admin-sub">Navigation links shown in the site header. URLs like <code>/blog</code> or <code>/contact</code> are prefixed with the current language automatically.</p>
+
+<div class="form-card" style="max-width:620px">
+  <h3>Add menu item</h3>
+  <form method="post">
+    <div class="form-row">
+      <div>
+        <label for="f-label">Label</label>
+        <input type="text" id="f-label" name="label" required maxlength="128">
+      </div>
+      <div>
+        <label for="f-url">URL</label>
+        <input type="text" id="f-url" name="url" required maxlength="512" placeholder="/blog">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn">Add</button>
+    </div>
+  </form>
+</div>
+
+<div class="tbl-wrap">
+  <table class="tbl">
+    <thead>
+      <tr><th>Label</th><th>URL</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for m in items %}
+      <tr>
+        <td>{{ m.label }}</td>
+        <td><code>{{ m.url }}</code></td>
+        <td>
+          <form class="inline-form" method="post" action="/admin/menus/{{ m.id }}/delete"
+                onsubmit="return confirm('Delete this menu item?')">
+            <button type="submit" class="link-btn">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" style="text-align:center;color:var(--muted)">No menu items yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

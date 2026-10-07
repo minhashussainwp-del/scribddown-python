@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero">
+  <div class="wrap">
+    <span class="kicker">{{ t("hero_kicker") }}</span>
+    <h1>{{ t("hero_title") }} <span class="accent">{{ t("hero_title_accent") }}</span></h1>
+    <p class="subtitle">{{ t("hero_subtitle") }}</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="tool-card">
+      <form id="dl-form" class="dl-form" autocomplete="off">
+        <input type="url" id="dl-url" name="url" placeholder="{{ t("url_placeholder") }}" aria-label="{{ t("url_placeholder") }}">
+        <button type="submit" id="dl-btn" class="btn">{{ t("download_btn") }}</button>
+      </form>
+      <div id="dl-status" class="dl-status" aria-live="polite"></div>
+    </div>
+    <p class="honest-note">{{ t("honest_note") }}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <h2 style="text-align:center">{{ t("how_title") }}</h2>
+    <div class="cards">
+      <div class="card">
+        <span class="step-num">1</span>
+        <h3>{{ t("how_1_t") }}</h3>
+        <p>{{ t("how_1_d") }}</p>
+      </div>
+      <div class="card">
+        <span class="step-num">2</span>
+        <h3>{{ t("how_2_t") }}</h3>
+        <p>{{ t("how_2_d") }}</p>
+      </div>
+      <div class="card">
+        <span class="step-num">3</span>
+        <h3>{{ t("how_3_t") }}</h3>
+        <p>{{ t("how_3_d") }}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <h2 style="text-align:center">{{ t("faq_title") }}</h2>
+    <div class="faq-list">
+      {% for q, a in faqs %}
+      <details class="faq">
+        <summary>{{ q }}</summary>
+        <div class="faq-body">{{ a }}</div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% if posts %}
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <h2 style="text-align:center">{{ t("latest_posts") }}</h2>
+    <div class="post-cards">
+      {% for p in posts %}
+      <article class="post-card">
+        <h3><a href="/{{ lang }}/blog/{{ p.slug }}">{{ p.title }}</a></h3>
+        <p class="excerpt">{{ p.excerpt }}</p>
+        <a class="read-more" href="/{{ lang }}/blog/{{ p.slug }}">{{ t("read_more") }} &rarr;</a>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<script>
+(function () {
+  var form = document.getElementById("dl-form");
+  var input = document.getElementById("dl-url");
+  var btn = document.getElementById("dl-btn");
+  var status = document.getElementById("dl-status");
+
+  var STR = {
+    fetching: {{ t("fetching") | tojson }},
+    invalidUrl: {{ t("invalid_url") | tojson }},
+    pasteFirst: {{ t("paste_first") | tojson }},
+    ready: {{ t("ready") | tojson }},
+    downloadPdf: {{ t("download_pdf") | tojson }},
+    downloadAgain: {{ t("download_again") | tojson }},
+    failed: {{ t("failed") | tojson }},
+    working: {{ t("working") | tojson }},
+    btnLabel: {{ t("download_btn") | tojson }}
+  };
+
+  function showLoading() {
+    status.innerHTML = '<div class="status-box status-loading"><span class="spinner" aria-hidden="true"></span><span></span></div>';
+    status.querySelector(".status-box span:last-child").textContent = STR.fetching;
+  }
+  function showError(msg) {
+    status.innerHTML = "";
+    var box = document.createElement("div");
+    box.className = "status-box status-error";
+    var strong = document.createElement("strong");
+    strong.textContent = STR.failed + ": ";
+    box.appendChild(strong);
+    box.appendChild(document.createTextNode(msg || ""));
+    status.appendChild(box);
+  }
+  function showSuccess(filename, size, blobUrl) {
+    status.innerHTML = "";
+    var box = document.createElement("div");
+    box.className = "status-box status-success";
+
+    var h = document.createElement("h3");
+    h.style.margin = "0 0 4px";
+    h.textContent = STR.ready;
+    box.appendChild(h);
+
+    var meta = document.createElement("div");
+    meta.className = "file-meta";
+    meta.textContent = filename + (size ? " · " + fmtBytes(size) : "");
+    box.appendChild(meta);
+
+    var again = document.createElement("p");
+    again.style.margin = "0 0 12px";
+    again.textContent = STR.downloadAgain;
+    box.appendChild(again);
+
+    var a = document.createElement("a");
+    a.className = "btn";
+    a.href = blobUrl;
+    a.download = filename;
+    a.textContent = STR.downloadPdf;
+    box.appendChild(a);
+
+    status.appendChild(box);
+  }
+  function fmtBytes(n) {
+    if (n == null || isNaN(n) || n <= 0) return "";
+    var units = ["B", "KB", "MB", "GB"], i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return (n >= 10 ? Math.round(n) : n.toFixed(1)) + " " + units[i];
+  }
+  function filenameFromCD(cd) {
+    if (!cd) return null;
+    var m = /filename\*=UTF-8''([^;]+)/i.exec(cd) || /filename="?([^";]+)"?/i.exec(cd);
+    if (!m) return null;
+    try { return decodeURIComponent(m[1].trim()); } catch (e) { return m[1].trim(); }
+  }
+  function isScribdUrl(u) {
+    try {
+      var parsed = new URL(u);
+      return /(^|\.)scribd\.com$/i.test(parsed.hostname);
+    } catch (e) { return false; }
+  }
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var url = input.value.trim();
+    if (!url) { showError(STR.pasteFirst); input.focus(); return; }
+    if (!isScribdUrl(url)) { showError(STR.invalidUrl); input.focus(); return; }
+
+    btn.disabled = true;
+    btn.textContent = STR.working;
+    showLoading();
+
+    fetch("/api/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    }).then(function (res) {
+      var ctype = (res.headers.get("content-type") || "").toLowerCase();
+      if (res.ok && ctype.indexOf("application/pdf") !== -1) {
+        var cd = res.headers.get("content-disposition");
+        return res.blob().then(function (blob) {
+          var filename = filenameFromCD(cd) || "scribd-document.pdf";
+          var blobUrl = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = blobUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showSuccess(filename, blob.size, blobUrl);
+        });
+      }
+      return res.text().then(function (txt) {
+        var msg = txt;
+        try {
+          var j = JSON.parse(txt);
+          msg = j.error || j.message || txt;
+        } catch (e) { /* keep raw text */ }
+        throw new Error(msg);
+      });
+    }).catch(function (err) {
+      showError(err && err.message ? err.message : "Unknown error");
+    }).finally(function () {
+      btn.disabled = false;
+      btn.textContent = STR.btnLabel;
+    });
+  });
+})();
+</script>
+
+{% endblock %}

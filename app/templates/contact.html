@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section">
+  <div class="wrap-narrow">
+    <h1>{{ t("contact_title") }}</h1>
+    <p style="color:var(--muted)">{{ t("contact_sub") }}</p>
+
+    {% if sent %}
+    <div class="alert alert-success">{{ t("form_sent") }}</div>
+    {% else %}
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="form-card" style="margin-top:24px">
+      <input class="hp" type="text" name="website" value="" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label for="c-name">{{ t("form_name") }}</label>
+      <input type="text" id="c-name" name="name" required maxlength="128">
+      <label for="c-email">{{ t("form_email") }}</label>
+      <input type="email" id="c-email" name="email" required maxlength="255">
+      <label for="c-subject">{{ t("form_subject") }}</label>
+      <input type="text" id="c-subject" name="subject" maxlength="255">
+      <label for="c-message">{{ t("form_message") }}</label>
+      <textarea id="c-message" name="message" required minlength="10"></textarea>
+      <div class="form-actions">
+        <button type="submit" class="btn">{{ t("form_send") }}</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

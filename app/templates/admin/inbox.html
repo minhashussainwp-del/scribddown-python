@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<h1>Inbox</h1>
+<p class="admin-sub">{{ msgs|length }} message(s).</p>
+
+<div class="tbl-wrap">
+  <table class="tbl">
+    <thead>
+      <tr><th>Status</th><th>Name</th><th>Email</th><th>Subject</th><th>Date</th></tr>
+    </thead>
+    <tbody>
+      {% for m in msgs %}
+      <tr{% if not m.is_read %} class="row-unread"{% endif %}>
+        <td>
+          {% if m.is_read %}<span class="pill pill-no">Read</span>
+          {% else %}<span class="pill pill-unread">Unread</span>{% endif %}
+        </td>
+        <td><a class="row-link" href="/admin/inbox/{{ m.id }}">{{ m.name }}</a></td>
+        <td>{{ m.email }}</td>
+        <td><a href="/admin/inbox/{{ m.id }}">{{ m.subject or "—" }}</a></td>
+        <td>{{ m.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted)">Inbox is empty.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

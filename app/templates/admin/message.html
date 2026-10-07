@@ -1,0 +1,25 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<h1>Message</h1>
+<p class="admin-sub">Received {{ m.created_at.strftime("%Y-%m-%d %H:%M") }} UTC.</p>
+
+<div class="msg-view">
+  <div class="msg-head">
+    <div><span class="k">From</span> {{ m.name }} &lt;{{ m.email }}&gt;</div>
+    <div><span class="k">Subject</span> {{ m.subject or "—" }}</div>
+    <div><span class="k">Status</span>
+      {% if m.is_read %}<span class="pill pill-no">Read</span>
+      {% else %}<span class="pill pill-unread">Unread</span>{% endif %}
+    </div>
+  </div>
+  <div class="msg-body">{{ m.message }}</div>
+</div>
+
+<div class="form-actions">
+  <a class="btn btn-ghost" href="/admin/inbox">Back to inbox</a>
+  <form class="inline-form" method="post" action="/admin/inbox/{{ m.id }}/delete"
+        onsubmit="return confirm('Delete this message?')">
+    <button type="submit" class="btn btn-danger">Delete</button>
+  </form>
+</div>
+{% endblock %}

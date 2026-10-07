@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <meta name="description" content="{{ description }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="{{ app_url }}/{{ lang }}/">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ app_url }}/{{ lang }}/">
+  <meta name="theme-color" content="#0a0e27">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="logo" href="/{{ lang }}/">Scribd<span class="grad">Down</span></a>
+      <nav class="main-nav" aria-label="Main navigation">
+        {% for item in nav %}
+        <a href="{{ item.url }}">{{ item.label }}</a>
+        {% endfor %}
+      </nav>
+      <div class="lang-switch" aria-label="Language">
+        {% for code in ["en", "ur", "hi", "es", "fr", "de"] %}
+        <a href="/{{ code }}/"{% if code == lang %} class="active" aria-current="page"{% endif %}>{{ code }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a class="logo" href="/{{ lang }}/">Scribd<span class="grad">Down</span></a>
+          <p class="footer-about">{{ t("footer_about") }}</p>
+        </div>
+        <div class="footer-col">
+          <h4>{{ t("footer_tools") }}</h4>
+          <ul>
+            <li><a href="/{{ lang }}/">{{ t("nav_home") }}</a></li>
+            <li><a href="/{{ lang }}/blog">{{ t("nav_blog") }}</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>{{ t("footer_company") }}</h4>
+          <ul>
+            <li><a href="/{{ lang }}/contact">{{ t("nav_contact") }}</a></li>
+            <li><a href="/{{ lang }}/about">About</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>{{ t("footer_legal") }}</h4>
+          <ul>
+            <li><a href="/{{ lang }}/privacy-policy">Privacy Policy</a></li>
+            <li><a href="/{{ lang }}/terms">Terms</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 {{ site_name }}. {{ t("rights") }}</span>
+        <span>{{ t("footer_disclaimer") }}</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

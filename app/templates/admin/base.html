@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Admin — {{ site_name }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0e27">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="sidebar">
+      <span class="logo">Scribd<span class="grad">Down</span></span>
+      <nav aria-label="Admin navigation">
+        <a href="/admin/"{% if request.path == "/admin/" %} class="active"{% endif %}>Dashboard</a>
+        <a href="/admin/posts"{% if request.path.startswith("/admin/posts") %} class="active"{% endif %}>Posts</a>
+        <a href="/admin/pages"{% if request.path.startswith("/admin/pages") %} class="active"{% endif %}>Pages</a>
+        <a href="/admin/categories"{% if request.path.startswith("/admin/categories") %} class="active"{% endif %}>Categories</a>
+        <a href="/admin/menus"{% if request.path.startswith("/admin/menus") %} class="active"{% endif %}>Menus</a>
+        <a href="/admin/inbox"{% if request.path.startswith("/admin/inbox") %} class="active"{% endif %}>Inbox{% if unread %} <span class="badge-unread">{{ unread }}</span>{% endif %}</a>
+        <a href="/admin/settings"{% if request.path.startswith("/admin/settings") %} class="active"{% endif %}>Settings</a>
+        <a href="/" target="_blank" rel="noopener">View site</a>
+        <a href="/admin/logout">Logout</a>
+      </nav>
+    </aside>
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <span class="site">{{ site_name }} &mdash; Admin</span>
+        <div class="actions">
+          <a class="btn btn-ghost btn-sm" href="/" target="_blank" rel="noopener">View site</a>
+          <a class="btn btn-ghost btn-sm" href="/admin/logout">Logout</a>
+        </div>
+      </div>
+      <div class="admin-body">
+        {% block admin_content %}{% endblock %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

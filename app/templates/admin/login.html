@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Admin Login — ScribdDown</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0e27">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <span class="logo">Scribd<span class="grad">Down</span></span>
+      <p class="tag">Admin sign in</p>
+      {% if error %}
+      <div class="alert alert-error">{{ error }}</div>
+      {% endif %}
+      <form method="post">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required autocomplete="username">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+        <button type="submit" class="btn">Sign In</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<h1>{% if page %}Edit Page{% else %}New Page{% endif %}</h1>
+<p class="admin-sub">{% if page %}ID {{ page.id }}{% else %}Create a new standalone page.{% endif %}</p>
+
+<form method="post" class="form-card">
+  <label for="f-title">Title</label>
+  <input type="text" id="f-title" name="title" required maxlength="255"
+         value="{{ page.title if page else '' }}">
+
+  <label for="f-slug">Slug</label>
+  <input type="text" id="f-slug" name="slug" maxlength="255"
+         value="{{ page.slug if page else '' }}">
+  <div class="form-hint">Leave blank to auto-generate from the title.</div>
+
+  <label for="f-content">Content</label>
+  <textarea id="f-content" name="content" class="tall">{{ page.content if page else '' }}</textarea>
+  <div class="form-hint">HTML + shortcodes allowed.</div>
+
+  <div class="form-row">
+    <div>
+      <label for="f-lang">Language</label>
+      <select id="f-lang" name="lang">
+        {% for code in ["en", "ur", "hi", "es", "fr", "de"] %}
+        <option value="{{ code }}"{% if page and page.lang == code %} selected{% endif %}>{{ code }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field-checkbox">
+      <input type="checkbox" id="f-published" name="published" value="1"{% if page and page.published %} checked{% endif %}>
+      <label for="f-published">Published</label>
+    </div>
+  </div>
+
+  <label for="f-meta-title">Meta title</label>
+  <input type="text" id="f-meta-title" name="meta_title" maxlength="255"
+         value="{{ page.meta_title if page else '' }}">
+
+  <label for="f-meta-desc">Meta description</label>
+  <textarea id="f-meta-desc" name="meta_description">{{ page.meta_description if page else '' }}</textarea>
+
+  <div class="form-actions">
+    <button type="submit" class="btn">Save Page</button>
+    <a class="btn btn-ghost" href="/admin/pages">Cancel</a>
+  </div>
+</form>
+{% endblock %}

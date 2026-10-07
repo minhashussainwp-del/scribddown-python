@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<h1>Settings</h1>
+<p class="admin-sub">Site-wide settings and SEO titles.</p>
+
+<form method="post" class="form-card">
+  {% for key, label in fields %}
+  {% if key == "reading.frontpage" %}
+  <label for="set-{{ loop.index }}">{{ label }}</label>
+  <select id="set-{{ loop.index }}" name="{{ key }}">
+    <option value="">— Downloader tool (default) —</option>
+    {% for p in pages %}
+    <option value="{{ p.slug }}"{% if vals[key] == p.slug %} selected{% endif %}>{{ p.title }} ({{ p.slug }})</option>
+    {% endfor %}
+  </select>
+  {% elif "description" in key %}
+  <label for="set-{{ loop.index }}">{{ label }}</label>
+  <textarea id="set-{{ loop.index }}" name="{{ key }}">{{ vals[key] }}</textarea>
+  {% else %}
+  <label for="set-{{ loop.index }}">{{ label }}</label>
+  <input type="text" id="set-{{ loop.index }}" name="{{ key }}" value="{{ vals[key] }}">
+  {% endif %}
+  {% endfor %}
+
+  <div class="form-actions">
+    <button type="submit" class="btn">Save Settings</button>
+  </div>
+</form>
+{% endblock %}

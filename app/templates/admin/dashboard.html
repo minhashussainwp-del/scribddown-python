@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<h1>Dashboard</h1>
+<p class="admin-sub">Overview of your site.</p>
+
+<div class="stat-grid">
+  <div class="stat">
+    <div class="num">{{ posts }}</div>
+    <div class="lbl">Posts</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ pages }}</div>
+    <div class="lbl">Pages</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ messages }}</div>
+    <div class="lbl">Messages</div>
+  </div>
+</div>
+
+<h2>Recent messages</h2>
+{% if recent %}
+<div class="tbl-wrap">
+  <table class="tbl">
+    <thead>
+      <tr><th>Name</th><th>Email</th><th>Subject</th><th>Date</th></tr>
+    </thead>
+    <tbody>
+      {% for m in recent %}
+      <tr{% if not m.is_read %} class="row-unread"{% endif %}>
+        <td><a class="row-link" href="/admin/inbox/{{ m.id }}">{{ m.name }}</a></td>
+        <td>{{ m.email }}</td>
+        <td>{{ m.subject or "—" }}</td>
+        <td>{{ m.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p style="margin-top:14px"><a href="/admin/inbox">Open inbox &rarr;</a></p>
+{% else %}
+<p class="admin-sub">No messages yet.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "admin/base.html" %}
+{% block admin_content %}
+<div class="toolbar">
+  <div>
+    <h1>Pages</h1>
+    <p class="admin-sub" style="margin:0">{{ pages|length }} page(s)</p>
+  </div>
+  <a class="btn" href="/admin/pages/new">New Page</a>
+</div>
+
+<div class="tbl-wrap">
+  <table class="tbl">
+    <thead>
+      <tr><th>Title</th><th>Slug</th><th>Language</th><th>Published</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for p in pages %}
+      <tr>
+        <td><a class="row-link" href="/admin/pages/{{ p.id }}/edit">{{ p.title }}</a></td>
+        <td><code>/{{ p.slug }}</code></td>
+        <td>{{ p.lang }}</td>
+        <td>
+          {% if p.published %}<span class="pill pill-yes">Yes</span>
+          {% else %}<span class="pill pill-no">No</span>{% endif %}
+        </td>
+        <td>
+          <div class="row-actions">
+            <a href="/admin/pages/{{ p.id }}/edit">Edit</a>
+            <form class="inline-form" method="post" action="/admin/pages/{{ p.id }}/delete"
+                  onsubmit="return confirm('Delete this page?')">
+              <button type="submit" class="link-btn">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center;color:var(--muted)">No pages yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
