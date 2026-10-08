@@ -80,6 +80,10 @@ _HEADERS = {
 
 _DOC_ID_RE = re.compile(r"scribd\.com/(?:document|doc|embeds)/(\d+)", re.IGNORECASE)
 _CONTENT_URL_RE = re.compile(r'contentUrl:\s*"(https://[^"]+\.jsonp)"')
+# Fallback: single-quoted or differently-spaced variants seen in the wild
+_CONTENT_URL_RE_FALLBACK = re.compile(
+    r"""contentUrl\s*:\s*['"](https://[^'"]+\.jsonp)['"]"""
+)
 _JSONP_RE = re.compile(r"window\.\w+_callback\(\s*(\[.*\])\s*\)\s*;?\s*$", re.DOTALL)
 
 _thread_state = threading.local()
@@ -135,6 +139,9 @@ def _fetch_document_page(url: str) -> tuple[str, str]:
 
     content_urls = _CONTENT_URL_RE.findall(body)
     if not content_urls:
+        # Fallback pattern before giving up (layout drift tolerance)
+        content_urls = _CONTENT_URL_RE_FALLBACK.findall(body)
+    if not content_urls:
         lowered = body.lower()
         login_markers = (
             "log in to continue",
@@ -149,9 +156,15 @@ def _fetch_document_page(url: str) -> tuple[str, str]:
                 f"Document {doc_id} requires login or is private; "
                 "no public pages are available to download."
             )
+        # Diagnostic: report what the server actually received so the
+        # failure can be classified (bot wall variant, empty page, ...).
+        title_m2 = re.search(r"<title>(.*?)</title>", body, re.DOTALL | re.IGNORECASE)
+        page_title = (title_m2.group(1).strip()[:120] if title_m2 else "no-title")
         raise ScribdStructureError(
             f"No page manifest (contentUrl entries) found for document {doc_id}; "
-            "Scribd may have changed its page layout."
+            f"Scribd may have changed its page layout. "
+            f"(diagnostic: title={page_title!r}, body_len={len(body)}, "
+            f"status_hint={'challenge' if 'challenge' in lowered else 'unknown'})"
         )
     return body, title, content_urls
 
@@ -257,7 +270,17 @@ def scrape_scribd_to_pdf(url: str, output_path: str) -> dict:
         ScribdError: any other failure (network, bad image, PDF build, ...).
     """
     _extract_doc_id(url)  # validate early
-    _, title, content_urls = _fetch_document_page(url)
+    doc_id = _extract_doc_id(url)
+    try:
+        _, title, content_urls = _fetch_document_page(url)
+    except ScribdStructureError as first_exc:
+        # Fallback: the /embeds/<id>/content endpoint sometimes serves the
+        # page manifest when the main document page is bot-walled for this IP.
+        embeds_url = f"https://www.scribd.com/embeds/{doc_id}/content"
+        try:
+            _, title, content_urls = _fetch_document_page(embeds_url)
+        except ScribdError:
+            raise first_exc from None
     total = len(content_urls)
 
     parent = os.path.dirname(os.path.abspath(output_path))
